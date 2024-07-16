@@ -346,7 +346,7 @@ def save_model(model, filename):
     """
     joblib.dump(model, filename)
 
-#NEW ENTRAINER AVEC BEST PARAMS et SAUVEGARDER
+# ENTRAINER AVEC BEST PARAMS et SAUVEGARDER
 def train_and_evaluate_and_save(model_class, params, model_name, key):
     # Créer une instance du modèle avec les paramètres spécifiés
     model = model_class(**params)
@@ -367,8 +367,9 @@ def train_and_evaluate_and_save(model_class, params, model_name, key):
     # Entraîner et évaluer le modèle
     results = train_and_evaluate_model(model, X_train_processed_df, X_test_processed_df, y_train_processed_df['Deposit'], y_test_processed_df['Deposit'])
     
-    # Sauvegarder le modèle
-    save_model(model, f'{model_name.lower()}_model.pkl')
+    # Sauvegarder le modèle avec underscores dans le nom du fichier
+    filename = f'{model_name.lower().replace(" ", "_")}_model.pkl'
+    save_model(model, filename)
     
     # Stocker les résultats dans st.session_state
     st.session_state[key] = results
@@ -376,12 +377,13 @@ def train_and_evaluate_and_save(model_class, params, model_name, key):
     # Afficher les résultats
     st.write("**Rapport de classification**")
     display_classification_report(results['report'])
-    
+
     st.write("")
     plot_confusion_matrix(results['confusion_matrix'])
     
     st.write("")
     plot_feature_importances(results['importances'], X_train_processed_df.columns)
+    
 
 
 
@@ -1940,7 +1942,8 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             }
             # Utilisez get_model pour obtenir le modèle
             model_rf = get_model('rf')
-            if model_rf is not None:train_and_evaluate_and_save(RandomForestClassifier, rf_params, 'Random Forest', 'results_rf')
+            if model_rf is not None:
+                train_and_evaluate_and_save(RandomForestClassifier, rf_params, 'random_forest', 'results_rf')
             
 
 
@@ -1961,7 +1964,7 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             # Utilisez get_model pour obtenir le modèle
             model_xgb = get_model('xgb')
             if model_xgb is not None:
-                train_and_evaluate_and_save(XGBClassifier, xgb_params, 'XGBoost', 'results_xgb')
+                train_and_evaluate_and_save(XGBClassifier, xgb_params, 'xgboost', 'results_xgb')
 
 
 
@@ -1980,7 +1983,7 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             # Utilisez get_model pour obtenir le modèle
             model_lgb = get_model('lgb')
             if model_lgb is not None:
-                train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'LightGBM', 'results_lgb')
+                train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'lightgbm', 'results_lgb')
 
 
         if  button8:
