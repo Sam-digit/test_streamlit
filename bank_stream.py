@@ -25,6 +25,7 @@ from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 import joblib
 import logging
+import os
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
@@ -61,10 +62,26 @@ st.sidebar.markdown(
 #@st.cache_resource
 # Fonction de sauvegarde des modèles
 def save_model(model, filename):
-    if isinstance(model, xgb.Booster):
-        model.save_model(filename)
-    else:
-        joblib.dump(model, filename)
+    """
+    Enregistre un modèle dans un fichier .pkl dans le répertoire 'models'.
+    :param model: L'objet modèle à sauvegarder.
+    :param filename: Nom du fichier dans lequel enregistrer le modèle.
+    """
+    model_dir = 'models/'
+
+    # Créer le répertoire s'il n'existe pas
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    # Construire le chemin complet pour le fichier de modèle
+    model_path = os.path.join(model_dir, filename)
+
+    # Sauvegarder le modèle en utilisant joblib
+    try:
+        joblib.dump(model, model_path)
+        print(f"Modèle enregistré avec succès dans {model_path}")
+    except Exception as e:
+        print(f"Erreur lors de l'enregistrement du modèle dans {model_path}: {e}")
 
 # Fonction de chargement des modèles
 def load_model(filename):
@@ -80,8 +97,11 @@ def load_model(filename):
         logger.error(f"Erreur lors du chargement du modèle {filename}: {e}")
         return None
 
-# Fonction d'initialisation des modèles
 def initialize_models():
+    # Répertoire contenant les fichiers de modèle
+    model_dir = 'models/'
+
+    # Dictionnaire des fichiers de modèle
     model_files = {
         'model_rf': 'random_forest_model.pkl',
         'model_xgb': 'xgboost_model.pkl',
@@ -89,7 +109,11 @@ def initialize_models():
     }
     
     for key, filename in model_files.items():
-        st.session_state[key] = load_model(filename)
+        # Construire le chemin complet vers le fichier de modèle
+        model_path = os.path.join(model_dir, filename)
+        
+        # Charger le modèle et le stocker dans la session_state
+        st.session_state[key] = load_model(model_path)
 
 # Appel de la fonction pour pré-charger les modèles
 initialize_models()
@@ -106,6 +130,9 @@ initialize_results()
 
 def check_models_loaded(model_name):
     return st.session_state.get(model_name) is not None
+
+# Chemin vers le répertoire des modèles
+model_dir = 'models/'
 
 # Charger les modèles au besoin
 def get_model(model_name):
