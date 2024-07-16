@@ -52,7 +52,7 @@ st.sidebar.markdown(
 
 #FONCTIONS DATAS ET RESOURCES --------------------------------------------------------------
 #LANCEMENT DES MODELES SAUVEGARDES
-@st.cache_data
+#@st.cache_data
 def load_model(filename):
     """
     Charge un modèle depuis un fichier avec joblib.
