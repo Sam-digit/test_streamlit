@@ -1918,8 +1918,8 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
         st.subheader("Modélisation finale")
         col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         button5 = col1.button("Modèle Random Forest")
-        button6 = col2.button("Modèle XGBoost")
-        button7 = col3.button("Modèle LightGBM")
+        button6 = col2.button("Modèle LightGBM")
+        button7 = col3.button("Modèle XGBoost")
         button8 = col4.button("Comparatif de performances")
     
         # Vérifiez si un bouton est cliqué
@@ -1942,10 +1942,26 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             model_rf = get_model('rf')
             if model_rf is not None:train_and_evaluate_and_save(RandomForestClassifier, rf_params, 'Random Forest', 'results_rf')
             
+        if button6:
+            st.markdown("#### Modèle LightGBM")
+    
+            # Définir les hyperparamètres du modèle LightGBM
+            lgb_params = {
+                'colsample_bytree': 0.8,
+                'learning_rate': 0.01,
+                'n_estimators': 200,
+                'num_leaves': 31,
+                'subsample': 0.8,
+                'random_state': 42
+            }
+            # Utilisez get_model pour obtenir le modèle
+            model_lgb = get_model('lgb')
+            if model_lgb is not None:
+                train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'LightGBM', 'results_lgb')
 
 
 
-        if  button6:
+        if  button7:
             st.markdown("#### Modèle XGBoost")
     
             # Définir les hyperparamètres du modèle XGBoost
@@ -1965,23 +1981,7 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
 
 
 
-        if  button7:
-            st.markdown("#### Modèle LightGBM")
-    
-            # Définir les hyperparamètres du modèle LightGBM
-            lgb_params = {
-                'colsample_bytree': 0.8,
-                'learning_rate': 0.01,
-                'n_estimators': 200,
-                'num_leaves': 31,
-                'subsample': 0.8,
-                'random_state': 42
-            }
-            # Utilisez get_model pour obtenir le modèle
-            model_lgb = get_model('lgb')
-            if model_lgb is not None:
-                train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'LightGBM', 'results_lgb')
-
+        
 
         if  button8:
             st.markdown("#### Comparatif des Modèles")
