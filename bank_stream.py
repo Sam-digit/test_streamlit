@@ -44,7 +44,7 @@ st.sidebar.write("")
 st.sidebar.markdown(
     """
     <div style="position: relative; margin-top: 20px; padding: 10px; background-color: #f0f0f0; font-size: 14px; color: #333; border-top: 1px solid #ddd;">
-        Projet Data Analyst - Mai-Juillet 2024
+        Projet Data Analyst - Juillet 2024
     </div>
     """,
     unsafe_allow_html=True
@@ -52,7 +52,7 @@ st.sidebar.markdown(
 
 #FONCTIONS DATAS ET RESOURCES --------------------------------------------------------------
 #LANCEMENT DES MODELES SAUVEGARDES
-#@st.cache_resource
+@st.cache_resource
 def load_model(filename):
     """
     Charge un modèle depuis un fichier avec joblib.
@@ -61,26 +61,18 @@ def load_model(filename):
         model = joblib.load(filename)
         return model
     except FileNotFoundError:
-        st.error(f"Le modèle {filename} n'a pas pu être chargé.")
         return None
 
-# Charger les modèles au besoin
-def get_model(model_name):
-    """
-    Retourne le modèle demandé, en le chargeant si nécessaire.
-    """
-    if model_name == 'rf':
-        if 'model_rf' not in st.session_state:
-            st.session_state['model_rf'] = load_model('random_forest_model.pkl')
-        return st.session_state['model_rf']
-    elif model_name == 'xgb':
-        if 'model_xgb' not in st.session_state:
-            st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
-        return st.session_state['model_xgb']
-    elif model_name == 'lgb':
-        if 'model_lgb' not in st.session_state:
-            st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
-        return st.session_state['model_lgb']
+# Initialiser les modèles dans st.session_state
+def initialize_models():
+    if 'model_rf' not in st.session_state:
+        st.session_state['model_rf'] = load_model('random_forest_model.pkl')
+    if 'model_xgb' not in st.session_state:
+        st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
+    if 'model_lgb' not in st.session_state:
+        st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
+
+initialize_models()
 
 # Fonction pour l'initialisation des résultats
 def initialize_results():
@@ -340,12 +332,16 @@ def train_and_evaluate_model(model, X_train_processed, X_test_processed, y_train
         'importances': importances
     }
 
-def save_model(model, filename):
-    """
-    Sauvegarde un modèle dans un fichier avec joblib.
-    """
-    joblib.dump(model, filename)
-
+# Fonction pour obtenir le modèle à partir de st.session_state
+def get_model(model_name):
+    if model_name == 'rf':
+        return st.session_state.get('model_rf')
+    elif model_name == 'xgb':
+        return st.session_state.get('model_xgb')
+    elif model_name == 'lgb':
+        return st.session_state.get('model_lgb')
+    
+    
 # ENTRAINER AVEC BEST PARAMS et SAUVEGARDER
 def train_and_evaluate_and_save(model_class, params, model_name, key):
     # Créer une instance du modèle avec les paramètres spécifiés
@@ -1983,7 +1979,7 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             # Utilisez get_model pour obtenir le modèle
             model_lgb = get_model('lgb')
             if model_lgb is not None:
-                train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'lightgbm', 'results_lgb')
+                train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'LightGBM', 'results_lgb')
 
 
         if  button8:
