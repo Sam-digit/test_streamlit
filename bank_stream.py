@@ -16,7 +16,6 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
-import xgboost as xgb
 from lightgbm import LGBMClassifier
 from sklearn.tree import DecisionTreeClassifier
 import plotly.express as px
@@ -24,12 +23,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 import joblib
-import logging
-import os
-
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 #configuration Streamlit Wide
 st. set_page_config(layout="wide")
@@ -60,86 +53,53 @@ st.sidebar.markdown(
 #FONCTIONS DATAS ET RESOURCES --------------------------------------------------------------
 #LANCEMENT DES MODELES SAUVEGARDES
 #@st.cache_resource
-# Fonction de sauvegarde des modèles
-def save_model(model, filename):
-    """
-    Enregistre un modèle dans un fichier .pkl dans le répertoire 'models'.
-    :param model: L'objet modèle à sauvegarder.
-    :param filename: Nom du fichier dans lequel enregistrer le modèle.
-    """
-    model_dir = 'models/'
-
-    # Créer le répertoire s'il n'existe pas
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-
-    # Construire le chemin complet pour le fichier de modèle
-    model_path = os.path.join(model_dir, filename)
-
-    # Sauvegarder le modèle en utilisant joblib
-    try:
-        joblib.dump(model, model_path)
-        print(f"Modèle enregistré avec succès dans {model_path}")
-    except Exception as e:
-        print(f"Erreur lors de l'enregistrement du modèle dans {model_path}: {e}")
-
-# Fonction de chargement des modèles
 def load_model(filename):
-    logger.info(f"Tentative de chargement du modèle depuis {filename}")
+    """
+    Charge un modèle depuis un fichier avec joblib.
+    """
     try:
-        if filename.endswith('.pkl'):
-            model = joblib.load(filename)
-        else:
-            raise ValueError("Format de fichier non supporté")
-        logger.info(f"Modèle {filename} chargé avec succès")
+        model = joblib.load(filename)
         return model
-    except Exception as e:
-        logger.error(f"Erreur lors du chargement du modèle {filename}: {e}")
+    except FileNotFoundError:
+        st.error(f"Le modèle {filename} n'a pas pu être chargé.")
         return None
-
-def initialize_models():
-    # Répertoire contenant les fichiers de modèle
-    model_dir = 'models/'
-
-    # Dictionnaire des fichiers de modèle
-    model_files = {
-        'model_rf': 'random_forest_model.pkl',
-        'model_xgb': 'xgboost_model.pkl',
-        'model_lgb': 'lightgbm_model.pkl'
-    }
-    
-    for key, filename in model_files.items():
-        # Construire le chemin complet vers le fichier de modèle
-        model_path = os.path.join(model_dir, filename)
-        
-        # Charger le modèle et le stocker dans la session_state
-        st.session_state[key] = load_model(model_path)
-
-# Appel de la fonction pour pré-charger les modèles
-initialize_models()
-
-
-# Initialiser les résultats dans l'état de session
-def initialize_results():
-    result_keys = ['results_rf', 'results_xgb', 'results_lgb']
-    for key in result_keys:
-        if key not in st.session_state:
-            st.session_state[key] = None
-
-initialize_results()
-
-def check_models_loaded(model_name):
-    return st.session_state.get(model_name) is not None
-
-# Chemin vers le répertoire des modèles
-model_dir = 'models/'
 
 # Charger les modèles au besoin
 def get_model(model_name):
-    return st.session_state.get(f'model_{model_name}')
+    """
+    Retourne le modèle demandé, en le chargeant si nécessaire.
+    """
+    if model_name == 'rf':
+        if 'model_rf' not in st.session_state:
+            st.session_state['model_rf'] = load_model('random_forest_model.pkl')
+        return st.session_state['model_rf']
+    elif model_name == 'xgb':
+        if 'model_xgb' not in st.session_state:
+            st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
+        return st.session_state['model_xgb']
+    elif model_name == 'lgb':
+        if 'model_lgb' not in st.session_state:
+            st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
+        return st.session_state['model_lgb']
 
-def show_loading_message(model_name):
-    st.success(f"{model_name} chargé avec succès!")
+# Fonction pour l'initialisation des résultats
+def initialize_results():
+    if 'results_rf' not in st.session_state:
+        st.session_state['results_rf'] = None
+    if 'results_xgb' not in st.session_state:
+        st.session_state['results_xgb'] = None
+    if 'results_lgb' not in st.session_state:
+        st.session_state['results_lgb'] = None
+
+# Initialiser les résultats dans l'état de session
+initialize_results()
+
+def save_model(model, filename):
+    """
+    Sauvegarde un modèle dans un fichier avec joblib.
+    """
+    joblib.dump(model, filename)
+
 
 #FONCTION LOAD DATA POUR LE DF
 @st.cache_data
@@ -379,6 +339,12 @@ def train_and_evaluate_model(model, X_train_processed, X_test_processed, y_train
         'confusion_matrix': cm,
         'importances': importances
     }
+
+def save_model(model, filename):
+    """
+    Sauvegarde un modèle dans un fichier avec joblib.
+    """
+    joblib.dump(model, filename)
 
 #NEW ENTRAINER AVEC BEST PARAMS et SAUVEGARDER
 def train_and_evaluate_and_save(model_class, params, model_name, key):
@@ -1952,8 +1918,8 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
         st.subheader("Modélisation finale")
         col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         button5 = col1.button("Modèle Random Forest")
-        button6 = col2.button("Modèle LightGBM")
-        button7 = col3.button("Modèle  XGBoost")
+        button6 = col2.button("Modèle XGBoost")
+        button7 = col3.button("Modèle LightGBM")
         button8 = col4.button("Comparatif de performances")
     
         # Vérifiez si un bouton est cliqué
@@ -1962,11 +1928,6 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
         #Définir button5 par défaut à l'ouverture de la page
         if not button_clicked or button5:
             st.markdown("#### Modèle Random Forest")
-
-            if not check_models_loaded('model_rf'):
-                with st.spinner('Chargement du modèle Random Forest, veuillez patienter...'):
-                    st.session_state['model_rf'] = load_model('random_forest_model.pkl')
-                show_loading_message('model_rf')
     
             # Définir les hyperparamètres du modèle RandomForest
             rf_params = {
@@ -1979,19 +1940,34 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             }
             # Utilisez get_model pour obtenir le modèle
             model_rf = get_model('rf')
-            if model_rf is not None:
-                train_and_evaluate_and_save(RandomForestClassifier, rf_params, 'Random Forest', 'results_rf')
+            if model_rf is not None:train_and_evaluate_and_save(RandomForestClassifier, rf_params, 'Random Forest', 'results_rf')
             
 
+
+
         if  button6:
+            st.markdown("#### Modèle XGBoost")
+    
+            # Définir les hyperparamètres du modèle XGBoost
+            xgb_params = {
+                'colsample_bytree': 0.8,
+                'learning_rate': 0.01,
+                'max_depth': 7,
+                'n_estimators': 300,
+                'subsample': 0.8,
+                'random_state': 42
+            }
+
+            # Utilisez get_model pour obtenir le modèle
+            model_xgb = get_model('xgb')
+            if model_xgb is not None:
+                train_and_evaluate_and_save(XGBClassifier, xgb_params, 'XGBoost', 'results_xgb')
+
+
+
+        if  button7:
             st.markdown("#### Modèle LightGBM")
-
-            if not check_models_loaded('model_lgb'):
-                with st.spinner('Chargement du modèle LightGBM, veuillez patienter...'):
-                    st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
-                show_loading_message('model_lgb')
-
-
+    
             # Définir les hyperparamètres du modèle LightGBM
             lgb_params = {
                 'colsample_bytree': 0.8,
@@ -2005,32 +1981,6 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             model_lgb = get_model('lgb')
             if model_lgb is not None:
                 train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'LightGBM', 'results_lgb')
-
-
-
-        if  button7:
-            st.markdown("#### Modèle XGBoost")
-            if not check_models_loaded('model_xgb'):
-                with st.spinner('Chargement du modèle XGBoost, veuillez patienter...'):
-                    st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
-                show_loading_message('model_xgb')
-            
-            # Définir les hyperparamètres du modèle XGBoost
-            xgb_params = {
-                'colsample_bytree': 0.8,
-                'learning_rate': 0.05,
-                'max_depth': 5,
-                'n_estimators': 100,
-                'subsample': 0.8,
-                'random_state': 42
-            }
-
-            # Utilisez get_model pour obtenir le modèle
-            model_xgb = get_model('xgb')
-            if model_xgb is not None:
-                train_and_evaluate_and_save(XGBClassifier, xgb_params, 'XGBoost', 'results_xgb')
-
-
 
 
         if  button8:
