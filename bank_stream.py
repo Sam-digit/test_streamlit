@@ -16,6 +16,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
+import xgboost as xgb
 from lightgbm import LGBMClassifier
 from sklearn.tree import DecisionTreeClassifier
 import plotly.express as px
@@ -23,7 +24,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 import joblib
-import time
+
 
 #configuration Streamlit Wide
 st. set_page_config(layout="wide")
@@ -52,15 +53,30 @@ st.sidebar.markdown(
 )
 
 #FONCTIONS DATAS ET RESOURCES --------------------------------------------------------------
-#LANCEMENT DES MODELES SAUVEGARDES
-#@st.cache_data
-def load_model(filename):
-    model = joblib.load(filename)
-    return model
+#LANCEMENT DES SAUVEGARDES DE MODELES ET CHARGEMENT 
+
+
+def save_model(model, filename):
+    """
+    Sauvegarde un modèle dans un fichier.
+    """
+    if isinstance(model, XGBClassifier):  # Utiliser XGBClassifier pour XGBoost
+        model.save_model(filename)  # Sauvegarde en JSON pour XGBoost
+    else:
+        joblib.dump(model, filename)  # Sauvegarde en pickle pour d'autres modèles
 
 def load_model(filename):
+    """
+    Charge un modèle depuis un fichier.
+    """
     try:
-        model = joblib.load(filename)
+        if filename.endswith('.pkl'):
+            model = joblib.load(filename)
+        elif filename.endswith('.json'):
+            model = XGBClassifier()
+            model.load_model(filename)
+        else:
+            raise ValueError("Format de fichier non supporté")
         return model
     except Exception as e:
         st.error(f"Erreur lors du chargement du modèle: {e}")
@@ -69,7 +85,7 @@ def load_model(filename):
 def initialize_models():
     model_files = {
         'model_rf': 'random_forest_model.pkl',
-        'model_xgb': 'xgboost_model.pkl',
+        'model_xgb': 'xgboost_model.json',  # Utilisation du format JSON pour XGBoost
         'model_lgb': 'lightgbm_model.pkl'
     }
     
@@ -86,13 +102,6 @@ def initialize_results():
 # Initialiser les modèles et les résultats
 initialize_models()
 initialize_results()
-
-def save_model(model, filename):
-    """
-    Sauvegarde un modèle dans un fichier avec joblib.
-    """
-    joblib.dump(model, filename)
-
 
 #FONCTION LOAD DATA POUR LE DF
 @st.cache_data
@@ -345,42 +354,41 @@ def get_model(model_name):
     
 # ENTRAINER AVEC BEST PARAMS et SAUVEGARDER
 def train_and_evaluate_and_save(model_class, params, model_name, key):
-    # Créer une instance du modèle avec les paramètres spécifiés
+    """
+    Entraîne, évalue et sauvegarde le modèle.
+    """
     model = model_class(**params)
     
-    # Afficher les paramètres du modèle
     with st.expander(f"Afficher les paramètres du modèle {model_name}"):
         st.write(f"Modèle {model_name} créé avec les paramètres suivants :")
         st.write(params)
     
-    # Charger et pré-traiter les données
     df = load_data()
     X_train, X_test, y_train, y_test = preprocess_data(df)
     X_train_processed_df, X_test_processed_df, y_train_processed_df, y_test_processed_df = preprocess_and_transform(X_train, X_test, y_train, y_test)
     
-    # Enlever la colonne 'duration' des ensembles de données traitées
     X_train_processed_df, X_test_processed_df = remove_duration(X_train_processed_df, X_test_processed_df)
-
-    # Entraîner et évaluer le modèle
+    
     results = train_and_evaluate_model(model, X_train_processed_df, X_test_processed_df, y_train_processed_df['Deposit'], y_test_processed_df['Deposit'])
     
-    # Sauvegarder le modèle avec underscores dans le nom du fichier
-    filename = f'{model_name.lower().replace(" ", "_")}_model.pkl'
+    filename = f'{model_name.lower().replace(" ", "_")}_model'
+    if model_class == XGBClassifier:  # Vérifier si le modèle est XGBClassifier
+        filename += '.json'  # Extension JSON pour XGBoost
+    else:
+        filename += '.pkl'   # Extension PKL pour les autres modèles
+    
     save_model(model, filename)
     
-    # Stocker les résultats dans st.session_state
     st.session_state[key] = results
     
-    # Afficher les résultats
     st.write("**Rapport de classification**")
     display_classification_report(results['report'])
-
+    
     st.write("")
     plot_confusion_matrix(results['confusion_matrix'])
     
     st.write("")
     plot_feature_importances(results['importances'], X_train_processed_df.columns)
-    
 
 
 
