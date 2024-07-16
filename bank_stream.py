@@ -2018,9 +2018,9 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
             # Définir les hyperparamètres du modèle XGBoost
             xgb_params = {
                 'colsample_bytree': 0.8,
-                'learning_rate': 0.1,
-                'max_depth': 7,
-                'n_estimators': 150,
+                'learning_rate': 0.05,
+                'max_depth': 5,
+                'n_estimators': 100,
                 'subsample': 0.8,
                 'random_state': 42
             }
