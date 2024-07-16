@@ -55,36 +55,17 @@ st.sidebar.markdown(
 #LANCEMENT DES MODELES SAUVEGARDES
 #@st.cache_data
 def load_model(filename):
-    """
-    Charge un modèle depuis un fichier avec joblib et retourne le modèle ainsi que le temps de chargement.
-    """
-    start_time = time.time()
-    try:
-        model = joblib.load(filename)
-        end_time = time.time()
-        load_time = end_time - start_time
-        return model, load_time
-    except FileNotFoundError:
-        st.write(f"Le fichier {filename} est introuvable.")
-        return None, None
-
-# Fonction pour charger le modèle XGBoost
-def load_xgboost_model():
-    start_time = time.time()
-    model = xgb.Booster()
-    model.load_model('xgboost_model.pkl')
-    end_time = time.time()
-    st.write(f"XGBoost model loaded in {end_time - start_time:.2f} seconds")
+    model = joblib.load(filename)
     return model
 
 # Initialiser les modèles dans st.session_state
 def initialize_models():
     if 'model_rf' not in st.session_state:
-        st.session_state['model_rf'], st.session_state['load_time_rf'] = load_model('random_forest_model.pkl')
+        st.session_state['model_rf'] = load_model('random_forest_model.pkl')
     if 'model_xgb' not in st.session_state:
-        st.session_state['model_xgb'], st.session_state['load_time_xgb'] = load_model('xgboost_model.pkl')
+        st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
     if 'model_lgb' not in st.session_state:
-        st.session_state['model_lgb'], st.session_state['load_time_lgb'] = load_model('lightgbm_model.pkl')
+        st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
 
 initialize_models()
 
