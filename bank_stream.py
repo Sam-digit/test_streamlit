@@ -72,16 +72,12 @@ def load_model(filename):
     try:
         if filename.endswith('.pkl'):
             model = joblib.load(filename)
-        elif filename.endswith('.xgb'):
-            model = xgb.Booster()
-            model.load_model(filename)
         else:
             raise ValueError("Format de fichier non supporté")
         logger.info(f"Modèle {filename} chargé avec succès")
         return model
     except Exception as e:
         logger.error(f"Erreur lors du chargement du modèle {filename}: {e}")
-        st.error(f"Erreur lors du chargement du modèle: {e}")
         return None
 
 # Fonction d'initialisation des modèles
@@ -1987,7 +1983,6 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
 
         if  button7:
             st.markdown("#### Modèle XGBoost")
-            
             if not check_models_loaded('model_xgb'):
                 with st.spinner('Chargement du modèle XGBoost, veuillez patienter...'):
                     st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
