@@ -8,14 +8,15 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, RobustScaler, OrdinalEncoder, LabelEncoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix
-from sklearn.linear_model import LogisticRegression
+#from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
+#from sklearn.neighbors import KNeighborsClassifier
+#from sklearn.ensemble import AdaBoostClassifier
+#from sklearn.naive_bayes import GaussianNB
+#from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
+import xgboost as xgb
 from lightgbm import LGBMClassifier
 from sklearn.tree import DecisionTreeClassifier
 import plotly.express as px
@@ -60,7 +61,10 @@ def save_model(model, filename):
     """
     Sauvegarde un modèle dans un fichier.
     """
-    joblib.dump(model, filename)
+    if isinstance(model, xgb.Booster):
+        model.save_model(filename)
+    else:
+        joblib.dump(model, filename)
 
 def load_model(filename):
     """
@@ -82,7 +86,7 @@ def async_load_model(filename):
     """
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(load_model, filename)
-        return future.result()
+        return future
 
 def initialize_models():
     model_files = {
@@ -91,12 +95,19 @@ def initialize_models():
         'model_lgb': 'lightgbm_model.pkl'
     }
     
-    for key, filename in model_files.items():
-        if key not in st.session_state:
-            st.session_state[key] = None
-            # Charger le modèle de manière synchrone pour initialisation
-            st.session_state[key] = load_model(filename)
+    # Charger les modèles au démarrage
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(load_model, filename): key for key, filename in model_files.items()}
+        for future in concurrent.futures.as_completed(futures):
+            key = futures[future]
+            try:
+                st.session_state[key] = future.result()
+            except Exception as e:
+                st.error(f"Erreur lors du chargement du modèle {key}: {e}")
+                st.session_state[key] = None
 
+# Appel de la fonction pour pré-charger les modèles
+initialize_models()
 
 def initialize_results():
     result_keys = ['results_rf', 'results_xgb', 'results_lgb']
@@ -2008,14 +2019,15 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
                 train_and_evaluate_and_save(LGBMClassifier, lgb_params, 'LightGBM', 'results_lgb')
 
 
-        if  button7:
+        if button7:
             st.markdown("#### Modèle XGBoost")
 
             # Afficher le spinner de chargement pour le modèle XGBoost
             if not check_models_loaded('model_xgb'):
                 with st.spinner('Chargement du modèle XGBoost, veuillez patienter...'):
-                    st.session_state['model_xgb'] = async_load_model('xgboost_model.pkl')
-                show_loading_message('model_xgb')
+                    future = async_load_model('xgboost_model.pkl')
+                    st.session_state['model_xgb'] = future.result()
+                    show_loading_message('model_xgb')
     
             # Définir les hyperparamètres du modèle XGBoost
             xgb_params = {
