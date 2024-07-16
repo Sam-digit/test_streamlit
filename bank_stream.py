@@ -23,6 +23,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.figure_factory as ff
 import joblib
+import time
 
 #configuration Streamlit Wide
 st. set_page_config(layout="wide")
@@ -55,22 +56,35 @@ st.sidebar.markdown(
 #@st.cache_data
 def load_model(filename):
     """
-    Charge un modèle depuis un fichier avec joblib.
+    Charge un modèle depuis un fichier avec joblib et retourne le modèle ainsi que le temps de chargement.
     """
+    start_time = time.time()
     try:
         model = joblib.load(filename)
-        return model
+        end_time = time.time()
+        load_time = end_time - start_time
+        return model, load_time
     except FileNotFoundError:
-        return None
+        st.write(f"Le fichier {filename} est introuvable.")
+        return None, None
+
+# Fonction pour charger le modèle XGBoost
+def load_xgboost_model():
+    start_time = time.time()
+    model = xgb.Booster()
+    model.load_model('xgboost_model.pkl')
+    end_time = time.time()
+    st.write(f"XGBoost model loaded in {end_time - start_time:.2f} seconds")
+    return model
 
 # Initialiser les modèles dans st.session_state
 def initialize_models():
     if 'model_rf' not in st.session_state:
-        st.session_state['model_rf'] = load_model('random_forest_model.pkl')
+        st.session_state['model_rf'], st.session_state['load_time_rf'] = load_model('random_forest_model.pkl')
     if 'model_xgb' not in st.session_state:
-        st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
+        st.session_state['model_xgb'], st.session_state['load_time_xgb'] = load_model('xgboost_model.pkl')
     if 'model_lgb' not in st.session_state:
-        st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
+        st.session_state['model_lgb'], st.session_state['load_time_lgb'] = load_model('lightgbm_model.pkl')
 
 initialize_models()
 
@@ -1926,6 +1940,10 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
         #Définir button5 par défaut à l'ouverture de la page
         if not button_clicked or button5:
             st.markdown("#### Modèle Random Forest")
+
+            # Afficher le temps de chargement du modèle Random Forest
+            if 'load_time_rf' in st.session_state:
+                st.write(f"Temps de chargement du modèle Random Forest : {st.session_state['load_time_rf']:.2f} secondes")
     
             # Définir les hyperparamètres du modèle RandomForest
             rf_params = {
@@ -1946,6 +1964,10 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
 
         if  button6:
             st.markdown("#### Modèle XGBoost")
+
+            # Afficher le temps de chargement du modèle XGBoost
+            if 'load_time_xgb' in st.session_state:
+                st.write(f"Temps de chargement du modèle XGBoost : {st.session_state['load_time_xgb']:.2f} secondes")
     
             # Définir les hyperparamètres du modèle XGBoost
             xgb_params = {
@@ -1966,6 +1988,11 @@ ce qui démontre le poids de cette variable dans la modélisation prédictive.
 
         if  button7:
             st.markdown("#### Modèle LightGBM")
+
+            # Afficher le temps de chargement du modèle LightGBM
+            if 'load_time_lgb' in st.session_state:
+                st.write(f"Temps de chargement du modèle LightGBM : {st.session_state['load_time_lgb']:.2f} secondes")
+
     
             # Définir les hyperparamètres du modèle LightGBM
             lgb_params = {
