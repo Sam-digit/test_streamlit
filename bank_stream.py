@@ -58,27 +58,33 @@ def load_model(filename):
     model = joblib.load(filename)
     return model
 
-# Initialiser les modèles dans st.session_state
+def load_model(filename):
+    try:
+        model = joblib.load(filename)
+        return model
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du modèle: {e}")
+        return None
+
 def initialize_models():
-    if 'model_rf' not in st.session_state:
-        st.session_state['model_rf'] = load_model('random_forest_model.pkl')
-    if 'model_xgb' not in st.session_state:
-        st.session_state['model_xgb'] = load_model('xgboost_model.pkl')
-    if 'model_lgb' not in st.session_state:
-        st.session_state['model_lgb'] = load_model('lightgbm_model.pkl')
+    model_files = {
+        'model_rf': 'random_forest_model.pkl',
+        'model_xgb': 'xgboost_model.pkl',
+        'model_lgb': 'lightgbm_model.pkl'
+    }
+    
+    for key, filename in model_files.items():
+        if key not in st.session_state:
+            st.session_state[key] = load_model(filename)
 
-initialize_models()
-
-# Fonction pour l'initialisation des résultats
 def initialize_results():
-    if 'results_rf' not in st.session_state:
-        st.session_state['results_rf'] = None
-    if 'results_xgb' not in st.session_state:
-        st.session_state['results_xgb'] = None
-    if 'results_lgb' not in st.session_state:
-        st.session_state['results_lgb'] = None
+    result_keys = ['results_rf', 'results_xgb', 'results_lgb']
+    for key in result_keys:
+        if key not in st.session_state:
+            st.session_state[key] = None
 
-# Initialiser les résultats dans l'état de session
+# Initialiser les modèles et les résultats
+initialize_models()
 initialize_results()
 
 def save_model(model, filename):
